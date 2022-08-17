@@ -5,6 +5,7 @@ import java.awt.image.BufferedImage
 import java.io.File
 import javax.imageio.ImageIO
 
+// Stage 1 / 6: Create an image
 fun main() {
     println("Enter rectangle width:")
     val width = readln().toInt()
