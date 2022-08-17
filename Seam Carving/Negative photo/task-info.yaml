@@ -165,6 +165,18 @@ files:
 - name: test/trees.png
   visible: false
   learner_created: false
+- name: test/blue-negative.png
+  visible: true
+  learner_created: true
+- name: test/trees-negative.png
+  visible: true
+  learner_created: true
+- name: test/small-negative.png
+  visible: true
+  learner_created: true
 feedback_link: https://hyperskill.org/learn/step/9016#comment
-status: Unchecked
+status: Solved
+feedback:
+  message: Congratulations!
+  time: Wed, 17 Aug 2022 19:22:31 UTC
 record: -1
