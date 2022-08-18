@@ -44,7 +44,7 @@
       </configuration>
     </facet>
   </component>
-  <component name="NewModuleRootManager">
+  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_11">
     <output url="file://$MODULE_DIR$/../../../../../../../../../Seam Carving/task/build/generated/sources/annotationProcessor/java/out/production/classes" />
     <exclude-output />
     <content url="file://$MODULE_DIR$/../../../../../../../../../Seam Carving/task/build/generated/sources/annotationProcessor/java/src" />

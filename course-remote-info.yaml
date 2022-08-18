@@ -3,7 +3,7 @@ hyperskill_project:
   ide_files: https://stepik.org/media/attachments/lesson/312105/additional_files.json
   is_template_based: false
   use_ide: true
-update_date: Wed, 17 Aug 2022 19:02:27 UTC
+update_date: Thu, 18 Aug 2022 03:39:16 UTC
 stages:
 - id: 550
   step: 9015
@@ -13,7 +13,7 @@ stages:
   is_completed: true
 - id: 552
   step: 9017
-  is_completed: false
+  is_completed: true
 - id: 553
   step: 9018
   is_completed: false
