@@ -1,66 +1,111 @@
 package seamcarving
 
 import java.awt.Color
+
 import java.awt.image.BufferedImage
 import java.io.File
 import javax.imageio.ImageIO
+import kotlin.math.pow
 import kotlin.math.sqrt
 
-fun main(args: Array<String>) {
-    val mainImage: BufferedImage = ImageIO.read(File(args[args.indexOf("-in") + 1]))
-    val transposedImg = transpose(mainImage)
-    drawVerticalSeam(transposedImg)
-    val horizontalSeam = transpose(transposedImg)
-    ImageIO.write(horizontalSeam, "png", File(args[args.indexOf("-out") + 1]))
+data class Pixel(val w:Int, val h: Int)
+
+class Weight {
+    var energy = 255.0
+    var weight = 0.0
 }
 
-fun transpose(image: BufferedImage): BufferedImage {
-    val newImage = BufferedImage(image.height, image.width, BufferedImage.TYPE_INT_RGB)
-    with (image) {
-        for (x in 0 until width)
-            for (y in 0 until height) {
-                val color = image.getRGB(x, y)
-                newImage.setRGB(y, x, color)
-            }
-    }
-    return newImage
-}
+class Carv(_image: BufferedImage) {
+    var image = _image
+    var pixels = mutableMapOf<Pixel, Weight>()
+    val height get() =  image.height
+    val width get() =  image.width
 
-fun drawVerticalSeam(image: BufferedImage, color: Color = Color.red) {
-    fun pow2(n: Int) = n * n
-    with (image) {
-        val energies = Array(height) { Array(width) { 0.0 } }
+    fun setEnergy() {
+        pixels.clear()
         for (y in 0 until height)
-            for (x in 0 until width){
-                val cx = x.coerceIn(1..width - 2)
-                val cy = y.coerceIn(1..height - 2)
-                val west = Color(getRGB(cx - 1, y))
-                val east = Color(getRGB(cx + 1, y))
-                val north = Color(getRGB(x, cy - 1))
-                val south = Color(getRGB(x, cy + 1))
-                val gradientX = pow2(west.red - east.red) + pow2(west.green - east.green) + pow2(west.blue - east.blue)
-                val gradientY = pow2(north.red - south.red) + pow2(north.green - south.green) + pow2(north.blue - south.blue)
-                energies[y][x] = sqrt((gradientX + gradientY).toDouble())
-            }
-
-        val weights = Array(height) { Array(width) { 0.0 } }
-        weights[0] = energies[0].copyOf()
-        for (y in 1 until height) {
             for (x in 0 until width) {
-                var minimo = weights[y - 1][x]
-                if (x > 0 && minimo > weights[y - 1][x - 1]) minimo = weights[y - 1][x - 1]
-                if (x < width - 1 && minimo > weights[y - 1][x + 1]) minimo = weights[y - 1][x + 1]
-                weights[y][x] = energies[y][x] + minimo
+                val left = if (x == 0) 0 else if (x == width - 1) width - 3 else x - 1
+                val right = if (x == width - 1) x else if (x == 0) 2 else x + 1
+                val down = if (y == height - 1) y else if (y == 0) 2 else y + 1
+                val up = if (y == 0) 0 else if (y == height - 1) height - 3 else y - 1
+                val colorL = Color(image.getRGB(left, y))
+                val colorR = Color(image.getRGB(right, y))
+                val colorU = Color(image.getRGB(x, up))
+                val colorD = Color(image.getRGB(x, down))
+                val energy = sqrt(
+                    (colorR.blue - colorL.blue).toDouble().pow(2) + (colorR.green - colorL.green).toDouble().pow(2) +
+                            (colorR.red - colorL.red).toDouble().pow(2) + (colorD.blue - colorU.blue).toDouble()
+                        .pow(2) +
+                            (colorD.green - colorU.green).toDouble().pow(2) +
+                            (colorD.red - colorU.red).toDouble().pow(2)
+                )
+                pixels[Pixel(x, y)] = Weight()
+                pixels[Pixel(x, y)]?.energy = energy
+            }
+    }
+
+    fun setWeight() {
+        (0 until width).forEach { pixels[Pixel(it, 0)]?.weight = pixels[Pixel(it, 0)]?.energy!! }
+        for (h in 1 until height) {
+            for(w in 0 until width){
+                pixels[Pixel(w, h)]?.weight = pixels[Pixel(w, h)]?.energy!! +
+                        (w - 1..w + 1).filter { it in 0 until width }.minOf { pixels[Pixel(it, h-1)]?.weight!! }
             }
         }
-        var idx = 0
-        for (x in 1 until width - 1) if (weights[height - 1][idx] > weights[height - 1][x]) idx = x
-        setRGB(idx, height - 1, color.rgb)
-        for (y in height - 2 downTo 0) {
-            for (x in (idx - 1).coerceAtLeast(0)..(idx + 1).coerceAtMost(width - 1))
-                if (weights[y + 1][idx] == energies[y + 1][idx] + weights[y][x]) idx = x
-            setRGB(idx, y, color.rgb)
-        }
-
     }
+
+    fun findSeam(): MutableList<Pixel> {
+        val seam = mutableListOf<Pixel>()
+        var weightMin = (0 until width).map { Pixel(it, height-1) }.minByOrNull { pixels[it]?.weight!! }!!
+        seam.add(weightMin)
+        for (h in height - 1 downTo 1) {
+            val w = weightMin.w
+            val pixs = (w - 1..w + 1).filter { it in 0 until width }.map { Pixel(it, h-1) }
+            weightMin = pixs.minByOrNull { pixels[it]?.weight!! }!!
+            seam.add(weightMin)
+        }
+        return seam
+    }
+
+    fun carv(times: Int) {
+        repeat(times) {
+            setEnergy()
+            setWeight()
+            val seam = findSeam()
+            val reduced = BufferedImage(width - 1, height, BufferedImage.TYPE_INT_RGB)
+            for (y in 0 until height) {
+                var w = 0
+                for (x in 0 until width) {
+                    if (Pixel(x,y) in seam) continue
+                    reduced.setRGB(w, y, image.getRGB(x,y))
+                    w++
+                }
+            }
+            image = reduced
+        }
+    }
+
+    fun rotate() {
+        val rotated = BufferedImage(height, width, BufferedImage.TYPE_INT_RGB)
+        for (y in 0 until height)
+            for (x in 0 until width) {
+                rotated.setRGB(y, x, image.getRGB(x, y))
+            }
+        image = rotated
+    }
+}
+
+fun main( args:Array<String> ) {
+    val inputFile = File(args[args.indexOf("-in") + 1])
+    val outputFile = File(args[args.indexOf("-out") + 1])
+    val vertiNumber = args[args.indexOf("-width") + 1].toInt()
+    val horiNumber = args[args.indexOf("-height") + 1].toInt()
+    val image = ImageIO.read(inputFile)
+    val work = Carv(image)
+    work.carv(vertiNumber)
+    work.rotate()
+    work.carv(horiNumber)
+    work.rotate()
+    ImageIO.write(work.image, "png", outputFile)
 }
