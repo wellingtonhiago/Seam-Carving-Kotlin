@@ -272,6 +272,18 @@ files:
 - name: test/trees.png
   visible: false
   learner_created: false
+- name: test/small-seam-hor.png
+  visible: true
+  learner_created: true
+- name: test/trees-seam-hor.png
+  visible: true
+  learner_created: true
+- name: test/blue-seam-hor.png
+  visible: true
+  learner_created: true
 feedback_link: https://hyperskill.org/learn/step/9019#comment
-status: Unchecked
+status: Solved
+feedback:
+  message: Congratulations!
+  time: Wed, 24 Aug 2022 02:00:02 UTC
 record: -1
